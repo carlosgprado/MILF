@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Milf by carlosgprado</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Milf</h1>
+        <p>An IDA Pro swiss army knife (with a sexy name!)</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/carlosgprado/MILF" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/carlosgprado/MILF/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/carlosgprado/MILF/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>Who's that girl?</h1>
+
+<p>MILF is an IDA Pro plugin which automates several typical tasks in a RE session.</p>
+
+<p>It has been written with a main focus on vulnerability discovery and security research. However a lot of her capabilities can be used in any generic RE project.</p>
+
+<p>It's written in Python making use of the IDAPython API interface.</p>
+
+<h1>Anti-plagiarism Disclaimer :)</h1>
+
+<p>Some of this code has been inspired by some work presented by Aaron Portnoy (of TippingPoint?) in Toorcon Seattle 2008. This has been pointed out within the code comments where pertinent.</p>
+
+<p><strong>Aaron, you are the man! :)</strong></p>
+
+<h1>What can she do?</h1>
+
+<ul>
+<li>Mark dangerous functions</li>
+<li>Find immediate compares</li>
+<li>Mark switches</li>
+<li>Show paths between functions</li>
+<li>Show paths between basic blocks within a function</li>
+<li>Find File IO</li>
+<li>Find Network IO</li>
+<li>Find Allocations</li>
+<li>Find dangerous „size params“</li>
+<li>Create IDA (connection) graphs</li>
+<li>Create „custom viewers“</li>
+</ul><h1>Details</h1>
+
+<ul>
+<li>Mark dangerous functions
+
+<ul>
+<li>Look for references to "dangerous" functions within a binary and colour them for easy spotting.</li>
+<li>For example: "call memcpy"</li>
+</ul>
+</li>
+<li>Find immediate compares
+
+<ul>
+<li>Mark all immediate compares in the current function. This is specially useful when analysing a huge function we suspect acts as a parser.</li>
+<li>For example: cmp esi, 14h</li>
+</ul>
+</li>
+<li>Mark switches</li>
+<li>Show paths between functions</li>
+<li>Show paths between basic blocks within a function</li>
+<li>Find File IO
+
+<ul>
+<li>Find functions calling file i/o imports.</li>
+</ul>
+</li>
+<li>Find Network IO
+
+<ul>
+<li>Find functions calling network i/o imports.</li>
+</ul>
+</li>
+<li>Find Allocations
+
+<ul>
+<li>Find functions allocating/freeing memory.</li>
+</ul>
+</li>
+<li>Find dangerous „size params“
+
+<ul>
+<li>Still a naive approach but interesting. Checks for calls to known problematic functions which accept a "size" parameter. If this argument is not a constant, it's worth it to take a look in case we can control it :)</li>
+</ul>
+</li>
+<li>Create IDA (connection) graphs
+
+<ul>
+<li>A class for creating IDA embedded Graphs, showing the paths between two functions and some other info.</li>
+</ul>
+</li>
+<li>Create „custom viewers“
+
+<ul>
+<li>Useful to display info (for example results of Find Network IO) in an embedded viewer within IDA Pro.</li>
+</ul>
+</li>
+<li>Integration with Intel PIN trace files</li>
+<li>and much more</li>
+</ul>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/carlosgprado">carlosgprado</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    
+  </body>
+</html>
