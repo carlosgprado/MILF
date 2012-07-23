@@ -61,7 +61,7 @@ class IDAnalyzer():
             if self.debug:
                 print "Function %s at %08x" % (FuncName, func_addr)
             
-             # find all code references to the function
+            # find all code references to the function
             for ref in CodeRefsTo(func_addr, True):
                 if self.debug:
                     print "\tcalled from %s (%08x)" % (GetFunctionName(ref), ref)
@@ -118,7 +118,7 @@ class IDAnalyzer():
         return self.import_dict  
     
     
-    def _imp_cb(self, ea, name, ord):
+    def _imp_cb(self, ea, name, ordinal):
         '''
         Used by _enum_all_imports.
         Callback function used by idaapi.enum_import_names()
@@ -126,11 +126,12 @@ class IDAnalyzer():
         @return: True
         ''' 
         if not name:
-            self.import_dict[ord] = ea
+            self.import_dict[ordinal] = ea
         else:
             self.import_dict[name] = ea
             
         return True
+
     
     def _find_import_name(self, iaddr):
         '''
@@ -388,7 +389,7 @@ class IDAnalyzer():
             
             gconnect = self.connect_graph(origin, destination)
             
-            for x in self.gconnect.itervalues():
+            for x in gconnect.itervalues():
                 node_ea = x['node']
                 nx_gconnect.add_node(node_ea)
                 for c in x['children']:
@@ -1020,7 +1021,6 @@ class IDAnalyzer():
         print "Importing basic block addresses from %s\n" % filename
         
         token = '$'
-        idx = 0
                 
         f = open(filename, 'r')
         lines = f.readlines()
@@ -1131,12 +1131,13 @@ class ConnectGraph(GraphViewer):
                 except:
                     continue
         
-        # Calculate a handy reverse dictionary { node_id: node_ea}
+        # Calculate a handy reverse dictionary {node_id: node_ea}
         self.AddrNode = dict()
-        for ea,id in idNode.iteritems():
-            self.AddrNode[id] = ea
+        for ea,idx in idNode.iteritems():
+            self.AddrNode[idx] = ea
                     
         return True
+
 
     def DisasmAround(self, node_id):
         '''
