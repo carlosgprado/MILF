@@ -21,15 +21,14 @@ try:
     NetworkX = True
 except:
     print "[debug] Deactivating support for NetworkX library"
-
+    NetworkX = False
 
 ###################################################################################################
 class IDAnalyzer():
     
     
     def __init__(self, debug = False, nx_support = True):
-
-        self.DangerFuncs = ["strcpy", "strncpy", "memmove", "memcpy", "sprintf", "lstrcpyW", "lstrcpyA", "memset"]
+        ''' initialization of the main class '''
         self.import_dict = dict()
         self.debug = debug
         self.nx_support = nx_support
@@ -52,11 +51,12 @@ class IDAnalyzer():
         Colorize dangerous function calls!
         No arguments.
         
-        @return: True
-        '''
+        @return: True '''
         
+        dangerousFuncs = ["strcpy", "strncpy", "memmove", "memcpy", "sprintf", "lstrcpyW", "lstrcpyA", "memset"]
+                
         # Loop from start to end within the current segment
-        for FuncName in self.DangerFuncs:
+        for FuncName in dangerousFuncs:
             func_addr = LocByName(FuncName)
             if self.debug:
                 print "Function %s at %08x" % (FuncName, func_addr)
@@ -80,8 +80,7 @@ class IDAnalyzer():
         @type color: hex
         @param color:(optional) color to mark the switches
          
-        @return: True
-        '''
+        @return: True '''
         
         switches = self.enum_switches(graph)
         for sw in switches.keys():
@@ -97,8 +96,7 @@ class IDAnalyzer():
         Following code has been taken shamelessly from the "ex_imports.py" distribution example :)
         
         @rtype: dictionary
-        @return: dictionary containing import name & address { name : idata_ea }
-        '''
+        @return: dictionary containing import name & address { name : idata_ea } '''
         
         nimps = get_import_module_qty() # How many modules imported?
         
@@ -118,20 +116,19 @@ class IDAnalyzer():
         return self.import_dict  
     
     
-    def _imp_cb(self, ea, name, ordinal):
+    def _imp_cb(self, ea, name, ord):
         '''
         Used by _enum_all_imports.
         Callback function used by idaapi.enum_import_names()
         
-        @return: True
-        ''' 
+        @return: True ''' 
         if not name:
-            self.import_dict[ordinal] = ea
+            self.import_dict[ord] = ea
         else:
             self.import_dict[name] = ea
             
         return True
-
+ 
     
     def _find_import_name(self, iaddr):
         '''
@@ -140,8 +137,7 @@ class IDAnalyzer():
         @type iaddr: address
         @param iaddr: Address of import
         
-        @return: name (if successful) or same argument (on failure) 
-        '''
+        @return: name (if successful) or same argument (on failure)  '''
         
         for k in self.import_dict.keys():
             if self.import_dict[k] == iaddr:
@@ -162,8 +158,7 @@ class IDAnalyzer():
         @param ea: address of ROOT NODE
         
         @rtype: dictionary
-        @return: Dictionary of function ea's and child *addresses* { ea : [c1_ea, c2_ea, ...] }
-        '''
+        @return: Dictionary of function ea's and child *addresses* { ea : [c1_ea, c2_ea, ...] } '''
         
         graph[ea] = list()    # Create a new entry on the graph dictionary {node: [child1, child2, ...], ...}
         path.add(ea)        # This is a set, therefore the add() method
@@ -190,8 +185,7 @@ class IDAnalyzer():
         @param ea: address of ROOT NODE (bottom)
         
         @rtype: dictionary
-        @return: Dictionary of function ea's and parent addresses { ea : [p1_ea, p2_ea, ...] }
-        '''
+        @return: Dictionary of function ea's and parent addresses { ea : [p1_ea, p2_ea, ...] } '''
         
         graph[ea] = list()    # Create a new entry on the graph dictionary {node: [child1, child2, ...], ...}
         path.add(ea)        # This is a set, therefore the add() method
@@ -224,8 +218,8 @@ class IDAnalyzer():
         @param graph: List of nodes_ea
         
         @type color: hex
-        @param color: (optional) color to paint the functions 
-        '''
+        @param color: (optional) color to paint the functions  '''
+
         for x in node_list:
             SetColor(x, CIC_FUNC, color)
         
@@ -240,13 +234,12 @@ class IDAnalyzer():
         @type graph: List
         @param graph: List of nodes
         
-        @note: Call with "all" string to reset the whole module.
-        '''
+        @note: Call with "all" string to reset the whole module. '''
+
         WHITE = 0xffffff
         
         if c_graph == 'all':
-            TextSegStart = SegByName('.text')
-            for function in Functions(TextSegStart, SegEnd(TextSegStart)):
+            for function in Functions():
                 SetColor(function, CIC_FUNC, WHITE)
         else:
             self._colorize_graph(c_graph, WHITE)
@@ -261,13 +254,15 @@ class IDAnalyzer():
         @type ea: address
         @param ea: address to lookup
         
-        @return: function/import name (on success) or same argument (on failure)
-        '''
+        @return: function/import name (on success) or same argument (on failure) '''
+        
         t = GetFunctionName(ea)
         if not t:
             if SegName(ea) == '.idata':
                 # The address is inside the imports section
                 t = self._find_import_name(ea)
+                if not t:
+                    t = ea
             else:
                 t = ea
                 
@@ -283,8 +278,7 @@ class IDAnalyzer():
         @param graph: dictionary of function ea's and "child" nodes { ea : [c1_ea, c2_ea, ...] }
         
         @rtype: dictionary
-        @return: same dictionary but names instead of ea's (where possible)
-        '''
+        @return: same dictionary but names instead of ea's (where possible) '''
         
         translated_graph = dict()
         
@@ -318,9 +312,7 @@ class IDAnalyzer():
                                             'children': [child1_ea, child2_ea...],
                                             'parents': [parent1_ea, parent2_ea] 
                                             },
-                                 ...}
-        '''
-        
+                                 ...} '''
 
         gdown = self.graph_down(LocByName(origin))
         gup = self.graph_up(LocByName(destination))
@@ -356,8 +348,7 @@ class IDAnalyzer():
                See connect_graph() for graph type definition.
                
         @rtype:  dictionary
-        @return: Complex data {imp_caller1_ea : connect_graph1, ...}
-        '''
+        @return: Complex data {imp_caller1_ea : connect_graph1, ...} '''
         
         graph_dict = dict()
         import_callers_dict = self._find_import_callers(origin)
@@ -377,8 +368,7 @@ class IDAnalyzer():
         '''
         Using networkx library.
         http://networkx.lanl.gov
-        @todo: As with ConnectGraph!OnRefresh, improve the clumsy algorithm :)
-        '''
+        @todo: As with ConnectGraph!OnRefresh, improve the clumsy algorithm :) '''
         
         if self.nx_support:
             
@@ -389,7 +379,7 @@ class IDAnalyzer():
             
             gconnect = self.connect_graph(origin, destination)
             
-            for x in gconnect.itervalues():
+            for x in self.gconnect.itervalues():
                 node_ea = x['node']
                 nx_gconnect.add_node(node_ea)
                 for c in x['children']:
@@ -411,7 +401,7 @@ class IDAnalyzer():
             return True
                             
         else:
-            print "[debug] Support for networkx is *disabled*"
+            print "[debug] Sorry, support for networkx is *disabled*"
             return False
         
         
@@ -428,8 +418,8 @@ class IDAnalyzer():
         @param destination: Function NAME
         
         @rtype: dictionary
-        @return: Complex struct. See connect_graph()
-        '''
+        @return: Complex struct. See connect_graph() '''
+        
         conn_graph = self.connect_graph(origin, destination)
         
         # The connection graph is a complex data structure, but
@@ -442,51 +432,44 @@ class IDAnalyzer():
     
     
     def enum_switches(self, graph):
-        """
+        '''
         Enumerate all switches in downgraph
         Shamelessly copied from Aaron Portnoy :)
-        
-        @todo: change from the Heads method to FuncItems, like imm_compares()
         
         @type graph: graph
         @param graph: Complex structure. See connect_graph()
         
         @rtype: dictionary
-        @return: dictionary { address : [Mmem, disasm] }
-        """
+        @return: dictionary { address : [cmp_mnem, disasm] } '''
 
         switch_dict = dict()
-        
+        jmpList = ['jmp', 'jz', 'jnz', 'jg', 'jl', 'ja', 'jb']
+                
         # Extract a *list* of nodes from the graph data structure
         graph_list = [x['node'] for x in graph.itervalues()]
-         
+                 
         for func_start in graph_list:
-
             # if the function end isn't defined (probably a library call) then skip it
             func_end = FindFuncEnd(func_start)
             if func_end == 0xFFFFFFFF:
                 continue
 
-            for head in Heads(func_start, func_end):
-
-                # check for switch jump
-                jmpList = ['jmp', 'jz', 'jnz', 'jg', 'jl', 'ja', 'jb']
-
-                if GetMnem(head) in jmpList:
-
+            for instr in FuncItems(func_start):
+                # check for switch jump                    
+                if GetMnem(instr) in jmpList:
                     # step backwards and find the cmp for the # of cases (if possible)
-                    prev_instruction = PrevHead(head, 0)
+                    prev_instruction = PrevHead(instr, 0)
 
                     count = 5
-                    while GetMnem(prev_instruction) != "cmp" and count != 0:
-                        count -= 1
-                        prev_instruction = PrevHead(prev_instruction, 0)
-
-                    if GetMnem(prev_instruction) == "cmp":
-                        # get comparison number, plus for for case 0
-                        cmp_mnem = GetDisasm(prev_instruction)
-
-                        switch_dict[head] = [cmp_mnem, GetDisasm(head)]
+                    while count > 0:
+                        if GetMnem(prev_instruction) == 'cmp':
+                            # get comparison number, plus for for case 0
+                            cmp_mnem = GetDisasm(prev_instruction)
+                            switch_dict[instr] = [cmp_mnem, GetDisasm(instr)]
+                            break
+                        
+                    prev_instruction = PrevHead(prev_instruction, 0)    
+                    count -= 1
 
 
         return switch_dict
@@ -501,8 +484,8 @@ class IDAnalyzer():
         @param graph: Complex data structure. See connect_graph()
         
         @rtype: dictionary
-        @return: dictionary of { addr : [op1, op2], ... }
-        '''
+        @return: dictionary of { addr : [op1, op2], ... } '''
+        
         imm_cmp = dict()
         
         # Extract a *list* of nodes from the graph data structure
@@ -516,7 +499,7 @@ class IDAnalyzer():
 
             for instr in FuncItems(func_start):
                 disasm = GetDisasm(instr)
-                if "cmp" in disasm:
+                if 'cmp' in disasm:
                     if GetOpType(instr, 1) == 5: # immediate value
                         if self.debug:
                             print "[debug] imm cmp at 0x%08x: %s" % (instr, GetDisasm(instr))
@@ -532,8 +515,7 @@ class IDAnalyzer():
         Very useful when debugging parsers, for example.
         
         @type color: hex
-        @param color: color for the mark
-        '''
+        @param color: color for the mark '''
         
         for instr in FuncItems(ScreenEA()):
             disasm = GetDisasm(instr)
@@ -549,8 +531,8 @@ class IDAnalyzer():
     def function_bb_connect(self, bb_src_ea, bb_dst_ea, color = 0x2020c0):
         '''
         Graphically connect (color) basic blocks within a function.
-        It could save your life! :)
-        '''
+        It could save your life! :) '''
+        
         set_down = set([])
         set_up = set([])
         self.color = color
@@ -577,12 +559,12 @@ class IDAnalyzer():
 
     def _aux_calc_down_set(self, f, CurrentBlockLayer, DownGraphBlockSet = set([])):
         '''
-        Analogous to *graph_down()*.
+        Analogous to graph_down().
         To set the "root" block, call with CurrentBlockLayer = [bb_src_ea] 
         
         @rtype: set
-        @return: set containing upgraph blocks
-        '''
+        @return: set containing upgraph blocks '''
+        
         self.FuncFlowChart = FlowChart(f)
         self.CurrentBlockLayer = CurrentBlockLayer
         self.NextBlockLayer = list()
@@ -610,8 +592,8 @@ class IDAnalyzer():
         @param ea: address of the basic block
         
         @rtype: Basic Block Object
-        @return: well... a basic block object :)    
-        '''
+        @return: well... a basic block object :) '''
+        
         self.f = f
         self.ea = ea
         self.FlowChart = FlowChart(f)
@@ -629,8 +611,8 @@ class IDAnalyzer():
         '''
         Auxiliary function. I couldn't make Basic Block preds() work,
         so I need to calculate the upgraph myself.
-        Note: preds(), I kill you! :)
-        '''
+        Note: preds(), I kill you! :) '''
+        
         self.FuncFlowChart = FlowChart(f)
         self.CurrentBlockLayer = CurrentBlockLayer
         self.NextBlockLayer = list()
@@ -652,14 +634,14 @@ class IDAnalyzer():
                     
     def function_graph(self, ea):
         '''
-        It creates a graph of nodes and their children.
+        It creates a graph of basic blocks and their children.
         
         @type ea: address
         @param ea: address anywhere within the analyzed function.
         
         @rtype: dictionary
-        @return: dictionary { block_ea: [branch1_ea, branch2_ea], ... }
-        '''
+        @return: dictionary { block_ea: [branch1_ea, branch2_ea], ... } '''
+        
         bb_dict = dict()
         f = FlowChart(get_func(ea))    #FlowChart object
         
@@ -683,8 +665,9 @@ class IDAnalyzer():
         @param callee: NAME of the function being called
         
         @rtype: List
-        @return: List of addresses ("call callee" instructions)
-        '''
+        @return: List of addresses ("call callee" instructions) 
+        
+        @todo: IIRC this needs to be improved/fixed '''
         
         call_addr_list = list()
         func_ea = LocByName(func_name)    # returns startEA
@@ -708,7 +691,6 @@ class IDAnalyzer():
                     print "[debug] Found", disasm, "at %08x" % instr
         
         return call_addr_list
-        
     
     
     def dangerous_size_param(self, color = 0xFF8000, mark = False):
@@ -716,8 +698,7 @@ class IDAnalyzer():
         Some functions copy buffers of size specified by a size_t parameter.
         If this isn't a constant, there's a chance that it can be manipulated 
         leading to a buffer overflow.
-        Example: void *memset( void *dest, int c, size_t count );
-        '''
+        Example: void *memset( void *dest, int c, size_t count ); '''
         
         regexp = ".*memset|.*memcpy|.*memmove|.*strncpy|.*strcpy.*|.*sncpy"
         candidate_dict = self._find_import_callers(regexp)
@@ -766,8 +747,7 @@ class IDAnalyzer():
         
         @rtype: Dictionary (of lists)
         @return: Dictionary containing the functions calling the imported functions,
-                 {fn_ea: [file_io1_ea, file_io2_ea, ...], ...}
-        '''
+                 {fn_ea: [file_io1_ea, file_io2_ea, ...], ...} '''
         
         # The meat and potatoes is the regexp
         regexp = ".*readf.*|.*write.*|.*openf.*|f.*print.*"
@@ -792,8 +772,7 @@ class IDAnalyzer():
         
         @rtype: Dictionary (of lists)
         @return: Dictionary containing the functions calling the imported functions,
-                 {fn_ea: [net_io1_ea, net_io2_ea, ...], ...}
-        '''
+                 {fn_ea: [net_io1_ea, net_io2_ea, ...], ...} '''
         
         # The meat and potatoes is the regexp
         regexp = "recv|recvfrom|wsa.*"
@@ -818,8 +797,7 @@ class IDAnalyzer():
         
         @rtype: Dictionary (of lists)
         @return: Dictionary containing the functions calling the imported functions,
-                 {fn_ea: [alloc1_ea, alloc2_ea, ...], ...}
-        '''
+                 {fn_ea: [alloc1_ea, alloc2_ea, ...], ...} '''
         
         # The meat and potatoes is the regexp
         regexp = ".*alloc.*|.*free.*"
@@ -838,6 +816,7 @@ class IDAnalyzer():
 
     def locate_most_referenced(self, number = 10, interactive = False):
         ''' Identifying these is an important first step '''
+        
         self.number = number
         self.interactive = interactive
         referenceDict = dict()
@@ -870,9 +849,6 @@ class IDAnalyzer():
                 
                 
         return topReferencesDict
-        
-
-
 
         
     def _find_import_callers(self, regexp):
@@ -885,7 +861,8 @@ class IDAnalyzer():
         @return: Dictionary containing *the address of the functions* 
                  calling the imports,
                  {fn_call_ea: [idata1_ea, idata2_ea, ...], ...}
-        '''
+                  
+        @todo: IIRC this needs some review '''
         
         importCallers = dict()
         importPattern = re.compile(regexp, re.IGNORECASE)
@@ -935,15 +912,13 @@ class IDAnalyzer():
         return importCallers
 
 
-
     def export_functions_to_file(self, extended = False):
         '''
         Export all the function start addresses to a file. This will be used by a tracer.
-        The extended option logs the number of arguments as well.
-        '''
+        The extended option logs the number of arguments as well. '''
         
         self.extended = extended
-        filename = idc.AskFile(1, "*.*", "File to export functions to?")
+        filename = AskFile(1, "*.*", "File to export functions to?")
         
         f = open(filename, "w")
         print "Exporting function addresses to %s\n" % filename
@@ -976,14 +951,12 @@ class IDAnalyzer():
         print "%d functions written to disk" % idx
             
 
-
     def import_functions_from_file(self):
         '''
         Import all the function start addresses to a file.
-        Rudimentary differential debugging, yay!
-        '''    
+        Rudimentary differential debugging, yay! '''    
         
-        filename = idc.AskFile(0, "*.*", "File to import functions from?")
+        filename = AskFile(0, "*.*", "File to import functions from?")
         print "Importing function start addresses from %s\n" % filename
         
         idx = 0        
@@ -1007,20 +980,19 @@ class IDAnalyzer():
             imported_fn_cview.Show()
         else:
             print "[debug] Failed to create custom view: Specific Functions" 
-        
     
 
     def import_basic_blocks_from_file(self):
         '''
         Import hit basic blocks from a detailed PIN Trace.
         A choser allows to somehow re-trace execution within 
-        the functions we are interested in.
-        '''    
+        the functions we are interested in. '''    
         
-        filename = idc.AskFile(0, "*.*", "File to import basic blocks from?")
+        filename = AskFile(0, "*.*", "File to import basic blocks from?")
         print "Importing basic block addresses from %s\n" % filename
         
         token = '$'
+        idx = 0
                 
         f = open(filename, 'r')
         lines = f.readlines()
@@ -1036,48 +1008,25 @@ class IDAnalyzer():
         analyzed_trace = self._find_trace_loops(bb_addresses)
         
         # Love lambda functions :)
-        TraceElements = [[GetFunctionName(x[0]), hex(x[0]), idc.GetDisasm(x[0]), x[1]] for x in bb_addresses]
+        TraceElements = [[GetFunctionName(x), hex(x), GetDisasm(x)] for x in bb_addresses]
         MilfBBTraceSelector("Basic blocks hit during Intel's PIN trace", TraceElements, 0, parent = self).show()
             
         
-
     def _find_trace_loops(self, bb_addr):
         '''
         Simple algorithm to reduce small loops in trace files.
         Loops of the type a -> b -> a ... are identified.
         @return: two-dimensional list (int addr, str comment), where the comment 
-                 indicate the number of times the loop occurred or empty string if none.
-        '''
+                 indicate the number of times the loop occurred or empty string if none. '''
         
-        idx             = 0
-        loop             = 0
-        analyzed_trace     = list()
-        
+        idx     = 0
+        loop     = 0
         
         while idx < len(bb_addr):
-            # Maybe not the optimal solution but clear.
-            a = bb_addr[idx]
-            b = bb_addr[idx + 1]
-            c = bb_addr[idx + 2]
-            d = bb_addr[idx + 3]
-            
-            # Two blocks loop check here
-            if a == c and b == d:
-                # We have found a loop block (abab)
-                loop += 1
-                idx += 2
-            else:
-                if loop == 0:    # Loop block not found
-                    analyzed_trace.append((bb_addr[idx], ""))
-                    idx += 1
-                else:            # End of loop block
-                    loop = 0
-                    analyzed_trace.append((bb_addr[idx], ""))
-                    analyzed_trace.append((bb_addr[idx + 1], " (loop occurrs %d times)" % loop))
-                    idx += 2
+            # Implement a simple logic here
+            pass
         
         
-        return analyzed_trace
         
         
         
@@ -1108,6 +1057,7 @@ class ConnectGraph(GraphViewer):
         
     def OnRefresh(self):
         '''@todo: this algorithm is a bit clumsy. Get back to it.'''
+        
         self.Clear()
         idNode = dict() # { node_ea : node_id }
         
@@ -1125,16 +1075,17 @@ class ConnectGraph(GraphViewer):
                     self.AddEdge(idNode[node_ea], idNode[c])
                 except:
                     continue
+                
             for p in x['parents']:
                 try:
                     self.AddEdge(idNode[p], idNode[node_ea])
                 except:
                     continue
         
-        # Calculate a handy reverse dictionary {node_id: node_ea}
+        # Calculate a handy reverse dictionary { node_id: node_ea}
         self.AddrNode = dict()
-        for ea,idx in idNode.iteritems():
-            self.AddrNode[idx] = ea
+        for ea,id in idNode.iteritems():
+            self.AddrNode[id] = ea
                     
         return True
 
@@ -1143,8 +1094,8 @@ class ConnectGraph(GraphViewer):
         '''
         Writes the function disassembly 
         (around interesting function calls)
-        @todo: identify fn call with pure asm, not strings :/
-        '''
+        @todo: identify fn call with pure asm, not strings :/ '''
+        
         interesting_fn_names = list()
         node_ea = self.AddrNode[node_id]
         
@@ -1154,7 +1105,7 @@ class ConnectGraph(GraphViewer):
             if x in self.graph.keys(): # node list
                 interesting_fn_names.append(GetFunctionName(x))
         
-        idx = 0
+        position = 0
         fi = FuncItems(node_ea)
         f_items = list(fi) # generator -> list
         
@@ -1167,8 +1118,8 @@ class ConnectGraph(GraphViewer):
             if "call" in disasm:
                 for name in interesting_fn_names:
                     if name in disasm:
-                        print "[debug] *** Found call", name, idx
-                        disasm_slice = f_items[idx - 3:idx + 3]
+                        print "[debug] *** Found call", name, position
+                        disasm_slice = f_items[position - 3 : position + 3]
                         for instr in disasm_slice:
                             #print "    [debug] disasm_around()", GetDisasm(instr)
                             NodeText += GetDisasm(instr)
@@ -1176,7 +1127,7 @@ class ConnectGraph(GraphViewer):
                             
                         NodeText += "--------\n"                        
             
-            idx += 1
+            position += 1
             
         return NodeText
     
@@ -1186,8 +1137,8 @@ class ConnectGraph(GraphViewer):
     
     
     def OnDblClick(self, node_id):
-        '''Double clicking on a node, jump to it in disassembly'''
-        idc.Jump(self.AddrNode[node_id])
+        ''' Double clicking on a node, jump to it in disassembly '''
+        Jump(self.AddrNode[node_id])
         return True
         
         
@@ -1207,8 +1158,7 @@ class ConnectGraph(GraphViewer):
     def OnCommand(self, cmd_id):
         '''
         Triggered when a menu command is selected through the menu of hotkey
-        @return: None
-        '''
+        @return: None '''
         
         if cmd_id == self.cmd_close:
             self.Close()
@@ -1235,8 +1185,7 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         This is analog to the __init__ method when superclassing.
         
         @todo: dict_refs connects line numbers (as the custom viewer) with function info.
-               How will it work when we delete/add lines (de-synchronize?)
-        '''
+               How will it work when we delete/add lines (de-synchronize?) '''
         
         self.dict_fn = dict_fn
         self.onhint_active = onhint_active
@@ -1286,7 +1235,8 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         self.menu_mark_line = self.AddPopupMenu("Mark this entry", 'F4')
         
         return True
-        
+
+
     def AddEntry(self, entry_text):
         '''
         I own you, machine
@@ -1295,6 +1245,7 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         self.AddLine(entry)
         
         return True
+
     
     def DelEntry(self, line_no):
         '''
@@ -1304,6 +1255,7 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         self.DelLine(line_no)
         
         return True
+
     
     def MarkCurrentLine(self):
         line_no = self.GetLineNo()
@@ -1312,9 +1264,11 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         self.EditLine(line_no, marked_line)
     
         return True
+
     
     def OnClick(self, shift):
         return True
+
     
     def OnDblClick(self, shift):
         fn_string = self.GetCurrentWord()
@@ -1323,9 +1277,10 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
         else:
             fn_ea = LocByName(fn_string)
             
-        idc.Jump(fn_ea)
+        Jump(fn_ea)
         
         return True
+
     
     def OnHint(self, lineno):
         
@@ -1380,6 +1335,8 @@ class SuspiciousFuncsViewer(simplecustviewer_t):
 
 ###################################################################################################
 class MilfPlugin(idaapi.plugin_t):
+    ''' This registers the plugin within IDA Pro '''
+    
     flags = 0
     comment = "MILF. Satisfying your (RE) basic needs."
     help = "For your everyday RE tasks"
@@ -1391,7 +1348,7 @@ class MilfPlugin(idaapi.plugin_t):
         idaapi.msg("MILF initialized\n")
         self.icon_id = 0
         # Instance of the IDAnalyzer class
-        self.ia = IDAnalyzer(True)
+        self.ia = IDAnalyzer(debug = True, nx_support = NetworkX)
         
         return idaapi.PLUGIN_KEEP
     
@@ -1441,6 +1398,7 @@ class MilfPlugin(idaapi.plugin_t):
         
         return True
     
+    
     def MilfConnectBlocks(self):
         if self.src_basic_block and self.dst_basic_block:
             self.ia.function_bb_connect(self.src_basic_block, self.dst_basic_block)
@@ -1449,6 +1407,7 @@ class MilfPlugin(idaapi.plugin_t):
             print "[Debug] Check that you selected all parameters"
         
         return True
+
         
     def MilfMostReferenced(self, number = 10):
         self.ia.locate_most_referenced(number = 10, interactive = True)
@@ -1470,29 +1429,35 @@ class MilfPlugin(idaapi.plugin_t):
 
     def MilfLocateAllocs(self):
         self.ia.locate_allocs(interactive = True)
+
         
     def MilfLocateNetIO(self):
         self.ia.locate_net_io(interactive = True)
+
         
     def MilfResetMarkings(self):
         self.ia.reset_colorize_graph('all')
+
         
     def MilfMarkDangerousSize(self):
         self.ia.dangerous_size_param(mark = True)
+
         
     def MilfExportFunctions(self):
         self.ia.export_functions_to_file()
 
+
     def MilfExportFunctionsAdvanced(self):
         self.ia.export_functions_to_file(extended = True)
+
         
     def MilfImportFunctions(self):
         self.ia.import_functions_from_file()
+
         
     def MilfImportBasicBlocks(self):
         self.ia.import_basic_blocks_from_file()
-    
-    
+        
         
     def term(self):
         idaapi.msg("term() called\n")
@@ -1503,73 +1468,8 @@ class MilfPlugin(idaapi.plugin_t):
 
 
 ###################################################################################################
-class MilfForm(Form):
-    '''
-    The main GUI element
-    '''
-    
-    def __init__(self, icon):
-        print "[debug] MilfForm.__init__() - About to instantiate MilfFuncSelector()"
-        self.EChooser = MilfFuncSelector("E1", [], icon, embedded = True)
-        print "[debug] MilfForm.__init__() - *AFTER* MilfFuncSelector()"
-        print "[debug] self.EChooser", self.EChooser
-        self.FormInputs = r"""STARTITEM {id:rOptMarkDangerous}
-                             MILF - For your (RE) basic needs v1.0
-                             
-                             {FormChangeCb}
-                             Actions:
-                             <#Mark functions#Mark dangerous functions:{rOptMarkDangerous}>
-                             <#Find imm comps#Find immediate compares:{rOptImmCompares}>
-                             <#Find dangerous size#Find dangerous size params:{rOptDangerousSize}>{grpActions}>
-                             
-                             <Function List:{cEChooser}>
-                             <#Go for it#Run:{btnRun}>
-                             """
-                             
-        self.FormLayout = {
-                           'FormChangeCb': Form.FormChangeCb(self.OnFormChange), # here lies the problem
-                           'grpActions': Form.RadGroupControl(("rOptMarkDangerous", "rOptImmCompares", "rOptDangerousSize")),
-                           'cEChooser': Form.EmbeddedChooserControl(self.EChooser),
-                           'btnRun': Form.ButtonInput(self.OnRunClick)
-                           }
-        print "[debug] About to call Form.__init__()"
-        Form.__init__(self, self.FormInputs, self.FormLayout)
-        
-    
-    def OnRunClick(self, code = 0):
-        pass
-    
-        
-    def OnFormChange(self, fid):
-        if fid == self.rOptMarkDangerous.id:
-            action = 1
-        elif fid == self.rOptDangerousSize.id:
-            action = 2            
-        elif fid == self.btnRun.id:
-            # Run button pressed
-            items = []
-            self.EChooser.SetItems(items)
-            self.RefreshField(self.cEChooser)
-    
-    
-    def Show(self):
-        # Compile the form *just once*
-        if not self.Compiled():
-            self.Compile()
-            
-        # Populate the initial values
-        self.rOptMarkDangerous.checked = True
-        
-        ret = self.Execute()
-        
-        return ret
-
-
-###################################################################################################
 class MilfFuncSelector(Choose2):
-    '''
-    Chooser class. Let's keep things pretty :P
-    '''
+    ''' Chooser class. Let's keep things pretty :P '''
     
     def __init__(self, title, items, icon, parent, embedded = False):
         Choose2.__init__(self, title, [["Address", 12], ["Functions", 30]], embedded = embedded)
@@ -1578,25 +1478,32 @@ class MilfFuncSelector(Choose2):
         self.parent = parent
         self.g_origin = None
         self.g_destination = None
+ 
         
     def GetItems(self):
         return self.items
+ 
     
     def SetItems(self, items):
         self.items = [] if items is None else items
+ 
         
     def OnClose(self):
         pass
+ 
     
     def OnGetLine(self, n):
         return self.items[n]
+ 
     
     def OnGetSize(self):
         return len(self.items)
+ 
     
     def OnSelectLine(self, n):
         # Callback for double-clicks
         pass
+ 
     
     def OnCommand(self, n, cmd_id):
         if cmd_id == self.cmd_origin:
@@ -1613,8 +1520,7 @@ class MilfFuncSelector(Choose2):
             gc = self.parent.ia.connect_graph(self.g_origin, self.g_destination)
             if gc:
                 gv = ConnectGraph(gc)
-                gv.Show()
-                
+                gv.Show()               
         else:
             print "[debug] Command not understood"
         
@@ -1636,41 +1542,48 @@ class MilfFuncSelector(Choose2):
 
 ###################################################################################################
 class MilfBBTraceSelector(Choose2):
-    '''
-    Displays the basic blocks hit during the Intel's PIN detailed trace.
-    '''
+    ''' Displays the basic blocks hit during the Intel's PIN detailed trace. '''
     
     def __init__(self, title, items, icon, parent, embedded = False):
-        Choose2.__init__(self, title, [["Function", 20], ["Address", 8], ["Disassembly", 20], ["Comment", 25]], embedded = embedded)
+        Choose2.__init__(self, title, [["Function", 20], ["Address", 8], ["Disassembly", 20]], embedded = embedded)
         self.items = items
         self.icon = icon
+
         
     def GetItems(self):
         return self.items
+
     
     def SetItems(self, items):
         self.items = [] if items is None else items
+
         
     def OnClose(self):
         pass
+
     
     def OnGetLine(self, n):
         return self.items[n]
+
     
     def OnGetSize(self):
         return len(self.items)
+
     
     def OnSelectLine(self, n):
-        '''Callback for: double-click'''
+        ''' Callback for double-click '''
+        
         trace_addr = int(self.items[n][1], 16)
-        idc.SetColor(trace_addr, CIC_ITEM, 0x3db43d)
-        idc.Jump(trace_addr)
+        SetColor(trace_addr, CIC_ITEM, 0x3db43d)
+        Jump(trace_addr)
+
     
     def OnCommand(self, n, cmd_id):
-        '''Callback for: contextual menu'''
+        '''Callback for contextual menu'''
+        
         if cmd_id == self.cmd_follow:
             # jmp to position in graph view
-            idc.Jump(int(self.items[n][1], 16))
+            Jump(int(self.items[n][1], 16))
         else:
             print "[debug] Command not understood"
         
@@ -1678,7 +1591,8 @@ class MilfBBTraceSelector(Choose2):
     
     
     def show(self):
-        '''It replaces the native Show() method'''
+        ''' It replaces the native Show() method '''
+        
         t = self.Show()
         if t < 0:
             return False
